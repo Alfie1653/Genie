@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TranscriptGenie</title>
+    <link type="image/png" sizes="16x16" rel="icon" href="icons8-t-16.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to right, #28313B, #485461);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            color: #222;
+        }
+        .container-box {
+            width: 40%;
+            background: #bfbfbf;
+            border-radius: 12px;
+            align-items: center;
+            text-align: center;
+            padding: 30px 40px;
+            max-width: 420px;
+            margin: 80px auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+        }
+        .container-box input[type="text"] {
+            margin-top: 10px;
+            padding: 5px;
+            font-size: 16px;
+            text-align: center;
+        }
+        .btn {
+            background-color: #00796b;
+            color: white;
+            padding: 10px 24px;
+            font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 10px 0;
+        }
+        .btn:hover {
+            background-color: #004d40;
+        }
+        #progressContainer {
+            display: none;
+            width: 100%;
+            background: #e9f1ef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        #progressBar {
+            width: 0%;
+            height: 20px;
+            background: #00796b;
+            transition: width 0.3s;
+        }
+        #progressText {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        #circularProgressContainer {
+          margin: 20px auto;
+          width: 80px;
+          height: 80px;
+        }
+
+        #successMessage {
+            display: none;
+            font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 500;
+            color: white;
+            margin-top: 15px;
+            font-size: 18px;
+        }
+        #disclaimer-box {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 600px;
+            text-align: center;
+            font-size: 17px;
+            color: #c0c0c0;
+            font-family: Merriweather;
+            background: transparent;
+            pointer-events: none;
+        }
+        #errorMessage {
+            background-color: #f44336;
+            color: white;
+            padding: 10px 15px;
+            border: 0.05px solid #c0392b;
+            border-radius: 4px;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+        }
+        #fileNameDisplay {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-box">
+        <h1>Transcript Genie</h1>
+
+        <label for="fileUpload" class="btn">Choose Excel File</label>
+        <input type="file" id="fileUpload" accept=".xlsx" style="display: none;">
+
+        <p id="fileNameDisplay">No file chosen</p>
+
+        <input type="text" id="zipFileName" placeholder="Enter ZIP File Name" style="margin-top:10px; padding:5px; font-size:16px; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border-radius: 6px; border: 1px solid #00796b;">
+        <br>
+        <br>
+        <button id="generateTranscripts" class="btn">Generate Transcripts</button>
+
+        <p id="progressText" style="display: none;">Processing 0/0 students</p>
+
+        <div id="circularProgressContainer" style="display: none;">
+            <svg id="circularProgress" width="90" height="90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" stroke="#ddd" stroke-width="10" fill="none" />
+                <circle id="progressCircle" cx="50" cy="50" r="40" stroke="#00796b" stroke-width="10" fill="none"
+                    stroke-dasharray="251.2" stroke-dashoffset="251.2" transform="rotate(-90 50 50)" />
+                <text id="progressPercent" x="50%" y="50%" dominant-baseline="central" text-anchor="middle"
+                    font-family="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" font-size="16" font-weight="500" fill="#000">0%</text>
+            </svg>
+        </div>
+
+        <div id="progressContainer">
+            <div id="progressBar"></div>
+            <div id="progressText"></div>
+        </div>
+
+        <div>
+            <p id="successMessage">Transcripts Processed!</p>
+        </div>
+    </div>
+
+    <div id="errorMessage" style="display: none; color: white; background-color: #e74c3c; padding: 10px; border-radius: 5px; margin-top: 10px;">
+      <span id="errorText"></span>
+    </div>
+
+    <div id= "disclaimer-box">
+        <p style="text-align: center;"><strong>Disclaimer ⚠️</strong></p>
+        <p>This tool is provided for informational and/or practical use only. While we strive to ensure its accuracy and reliability, use of this tool is at your own risk. The developers and providers of this tool are not responsible for any errors, omissions, or outcomes resulting from its use. Always verify critical results independently and consult a qualified professional when necessary.</p>
+    </div>
+
+    <script>
+        document.getElementById("fileUpload").addEventListener("change", function () {
+        const file = this.files[0];
+        const fileNameDisplay = document.getElementById("fileNameDisplay");
+
+        if (file) {
+            const baseName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+            fileNameDisplay.textContent = `Selected File: ${file.name}`;
+            document.getElementById("zipFileName").value = baseName; // Set value (not just placeholder)
+        } else {
+            fileNameDisplay.textContent = "No file chosen";
+        }
+        });
+
+
+        function showError(message) {
+            const errorBox = document.getElementById("errorMessage");
+            const errorText = document.getElementById("errorText");
+            errorText.textContent = message;
+            errorBox.style.display = "block";
+
+            // Hide after 6 seconds (optional)
+            setTimeout(() => {
+                errorBox.style.display = "none";
+            }, 6000);
+        }
+
+        document.getElementById("generateTranscripts").addEventListener("click", async function() {
+            const fileInput = document.getElementById("fileUpload");
+            if (!fileInput.files.length) {
+                showError("Please upload an Excel file.");
+                return;
+            }
+
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = async function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+
+                if (!workbook.SheetNames.includes("StudentDetails")) {
+                    showError("Sheet 'StudentDetails' not found in the Excel file.");
+                    return;
+                }
+
+                const studentSheet = XLSX.utils.sheet_to_json(workbook.Sheets["StudentDetails"]);
+                const gradesSem1 = XLSX.utils.sheet_to_json(workbook.Sheets["Grades Sem 1"]);
+                const gradesSem2 = XLSX.utils.sheet_to_json(workbook.Sheets["Grades Sem 2"]);
+                const courseMapping = XLSX.utils.sheet_to_json(workbook.Sheets["CourseMapping"]);
+
+                if (studentSheet.length === 0) {
+                    alert("No student data found in 'StudentDetails' sheet.");
+                    return;
+                }
+
+                document.getElementById("circularProgressContainer").style.display = "block";
+                const circle = document.getElementById("progressCircle");
+                const percentText = document.getElementById("progressPercent");
+
+
+                
+                const zip = new JSZip();
+
+                function formatDate(excelDate) {
+                // Check if the value is a number (Excel serial date)
+                if (typeof excelDate === 'number') {
+                    // Convert Excel date to JavaScript Date
+                    const date = new Date((excelDate - 25569) * 86400 * 1000); // Corrected conversion
+                    const day = date.getDate().toString().padStart(2, '0'); // Ensure two-digit format
+                    const month = date.toLocaleString('default', { month: 'short' }); // Get short month (e.g., "Aug")
+                    const year = date.getFullYear();
+                    return `${day}-${month}-${year}`;
+                }
+                return excelDate; // If it's not a number, return the raw value (can be text or an invalid date)
+                }
+
+
+
+                for (let i = 0; i < studentSheet.length; i++) {
+                    const student = studentSheet[i];
+
+                    // 👇 ADD THIS BLOCK at the START of the loop
+    const totalStudents = studentSheet.length;
+    const currentProgress = i + 1;
+    const percentage = Math.floor((currentProgress / totalStudents) * 100);
+
+    const radius = 35;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (percentage / 100) * circumference;
+
+    circle.style.strokeDashoffset = offset;
+    percentText.textContent = `${percentage}%`;
+
+    progressBar.style.width = `${percentage}%`;
+    progressText.textContent = `Processing ${currentProgress}/${totalStudents} students`;
+
+    await new Promise(resolve => setTimeout(resolve, 50));  // 👈 allow UI to update
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+
+
+                // Base64 string for your image (this is just an example, replace it with your actual Base64 string)
+                const logoBase64 = "data:image/jpeg;base64,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"; 
+
+                    // Add image to the PDF (centered and above the text)
+                    const imageWidth = 45; // Set the width of the image (adjust as needed)
+                    const imageHeight = 40; // Set the height of the image (adjust as needed)
+                    const xPosition = (doc.internal.pageSize.width - imageWidth) / 2; // Calculate x to center the image
+                    const yPosition = 0; // Set y position to place the image just above the text
+
+                    // Add image to the PDF
+                    doc.addImage(logoBase64, 'JPEG', xPosition, yPosition, imageWidth, imageHeight); // x, y, width, height
+
+                    // Define the texts
+                    const uniText = "TECHNICAL UNIVERSITY OF MOMBASA";
+                    const transcriptText = "ACADEMIC TRANSCRIPT";
+
+                    // Set font and size
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(10);
+                    doc.setTextColor(0, 0, 0);
+
+                    // Calculate x positions to center the texts
+                    const pageWidth = doc.internal.pageSize.width;
+                    const uniTextWidth = doc.getTextWidth(uniText);
+                    const uniX = (pageWidth - uniTextWidth) / 2;
+
+                    const transcriptTextWidth = doc.getTextWidth(transcriptText);
+                    const transcriptX = (pageWidth - transcriptTextWidth) / 2;
+
+                    // Draw UNIVERSITY name with slight weight increase
+                    doc.text(uniText, uniX, 45);
+                    doc.text(uniText, uniX + 0.05, 45); // slight horizontal offset
+
+                    // Draw ACADEMIC TRANSCRIPT with slight weight increase
+                    doc.text(transcriptText, transcriptX, 52);
+                    doc.text(transcriptText, transcriptX + 0.05, 52); // slight horizontal offset
+
+
+                    // Draw the black horizontal line
+                    const lineX = (doc.internal.pageSize.width * 0.01);  // 1% from the left for centering
+                    const lineWidth = doc.internal.pageSize.width * 0.96;  // 98% width of the page
+                    doc.setDrawColor(0, 0, 0); // Set the color to black
+                    doc.setLineWidth(0.38); // Set line width to 2px
+                    doc.line(lineX, 55, lineX + lineWidth, 55);  // Draw the line at y=35 (adjust if needed)
+
+                    // Table Data
+                    const tableData = [
+                        ["Name of Student", student["NAME"], "Registration", student["REGISTRATION NUMBER"], "", ""],
+                        ["Department", student["DEPARTMENT"], "", "", "", ""],
+                        ["Course Name", student["COURSE"], "", "", "", ""],
+                        ["Date of Admission", formatDate(student["ADMISSION DATE"]), "Academic Year", student["ACADEMIC YEAR"], "Year of Study", student["YEAR OF STUDY"]]
+                    ];
+
+                    // Properly initialize autoTable
+                    doc.autoTable({
+                        startY: 57, // Table position
+                        head: [], // No header needed
+                        body: tableData,
+                        theme: "plain",
+                        styles: { fontSize: 11, cellPadding: 1.0, halign: "left", font: "helvetica", tableWidth: "auto"},
+                        columnStyles: {
+                            0: { halign: "left" }, // Bold leftmost column
+                            2: { halign: "left" }, // Bold column for "Registration" & "Academic Year"
+                            4: { halign: "left" }  // Bold column for "Year of Study"
+                        },
+                        margin: {left: 1.5, right: 1.5}, //remove margins
+
+                        didDrawCell: (data) => {
+                            if (data.cell.section === 'body') {
+                                data.cell.styles.border = 'none';
+                            }
+                        }
+                    });
+
+                    // Combine and prepare grade rows: each row is [Unit Code, Course Name, Units, Grade]
+                    const gradeRowsSem1 = [];
+                    const gradeRowsSem2 = [];
+
+                    const unitsToExclude = ["TOTAL UNITS SEM 1", "TOTAL UNITS SEM 2"];
+
+                    function extractGrades(sheet, regNo, targetArray, unitsValue) {
+                        const row = sheet.find(entry => entry["REGISTRATION NUMBER"] === regNo);
+                        if (!row) return;
+
+                        Object.keys(row).forEach(key => {
+                            if (key !== "REGISTRATION NUMBER" && !unitsToExclude.includes(key)) {
+                                const grade = row[key];
+                                const courseCode = key;
+
+                                const courseNameObj = courseMapping.find(c => c["Course Code"] === courseCode);
+                                const courseName = courseNameObj ? courseNameObj["Course Name"] : "Unknown";
+
+                                targetArray.push([courseCode, courseName, unitsValue, grade]);
+                            }
+                        });
+                    }
+
+                    const rowSem1 = gradesSem1.find(entry => entry["REGISTRATION NUMBER"] === student["REGISTRATION NUMBER"]);
+                    const totalUnitsSem1 = rowSem1 ? rowSem1["TOTAL UNITS SEM 1"] : "";
+
+                    extractGrades(gradesSem1, student["REGISTRATION NUMBER"], gradeRowsSem1, totalUnitsSem1);
+
+                    const rowSem2 = gradesSem2.find(entry => entry["REGISTRATION NUMBER"] === student["REGISTRATION NUMBER"]);
+                    const totalUnitsSem2 = rowSem2 ? rowSem2["TOTAL UNITS SEM 2"] : "";
+
+                    extractGrades(gradesSem2, student["REGISTRATION NUMBER"], gradeRowsSem2, totalUnitsSem2);
+
+                    // Shared base styles
+                    const sharedStyles = {
+                        font: "helvetica",
+                        fontSize: 11,
+                        cellPadding: 1,
+                        lineWidth: 0.4,
+                        lineColor: [0, 0, 0],
+                        textColor: [0, 0, 0],
+                        valign: "middle"
+                    };
+
+                    // SEMESTER 1 styles
+                    const sem1ColumnStyles = {
+                        0: { cellWidth: '25%', halign: 'left' },     // UNIT CODE
+                        1: { cellWidth: '25%', halign: 'left' },     // TITLE OF UNIT(S)
+                        2: { cellWidth: '15%', halign: 'center' },   // UNIT(S)
+                        3: { cellWidth: '15%', halign: 'center' }    // GRADE
+                    };
+                    const sem1HeadStyles = {
+                        fillColor: [255, 255, 255], // white
+                        fontStyle: 'normal',
+                        textColor: [0, 0, 0],
+                        halign: 'center',
+                        valign: "middle",
+                        lineColor: [0, 0, 0],
+                        lineWidth: 0.35
+                    };
+
+                    // SEMESTER 2 styles
+                    const sem2ColumnStyles = {
+                        0: { cellWidth: '10%', halign: 'left' },
+                        1: { cellWidth: '40%', halign: 'left' },
+                        2: { cellWidth: '23%', halign: 'center' },
+                        3: { cellWidth: '22%', halign: 'center' }
+                    };
+                    const sem2HeadStyles = {
+                        fillColor: [255, 255, 255], // white
+                        fontStyle: 'bold',
+                        textColor: [100, 50, 0],
+                        halign: 'center',
+                        valign: "middle",
+                        lineColor: [0, 0, 0],
+                        lineWidth: 0.35
+                    };
+
+
+                    // COMBINE Semester 1 and Semester 2 results with a spacer row
+                    const combinedGradeRows = [...gradeRowsSem1];
+
+                    // Add a blank spacer row or a divider
+                    combinedGradeRows.push([" ", "", "", ""]);  // Blank spacer row
+                    // Or: combinedGradeRows.push(["", "Semester 2", "", ""]); // With label
+
+                    // Add Semester 2 rows
+                    combinedGradeRows.push(...gradeRowsSem2);
+
+                    // Render a single table for both semesters
+                    doc.autoTable({
+                        startY: doc.lastAutoTable.finalY + 2,
+                        head: [["UNIT CODE", "TITLE OF UNIT(S)", "UNIT(S)", "GRADE"]],
+                        body: combinedGradeRows,
+                        theme: "grid",
+                        tableWidth: 'auto',
+                        styles: sharedStyles,
+                        headStyles: sem1HeadStyles,
+                        columnStyles: sem1ColumnStyles,
+                        margin: { left: 1, right: 1 },
+
+                        // ↓↓↓ This is the important part ↓↓↓
+                        didParseCell: function (data) {
+                        const row = data.row;
+                        const cell = data.cell;
+
+                        const isSpacer = row.raw.join("").trim() === "";
+
+                        if (isSpacer) {
+                            cell.styles.fontSize = 1.5;     // Very small text
+                            cell.styles.cellPadding = 0.5;  // Minimal padding
+                        }
+                    }
+
+                    });
+
+
+                    const afterTablesY = doc.lastAutoTable.finalY + 20;  // Space below grades
+
+                    // Font styling
+                    doc.setFont("helvetica");
+                    doc.setFontSize(11);
+
+                    // Print "Recommendation:"
+                    doc.text("Recommendation:", 1, afterTablesY);
+
+                    // Style the Lines
+                    doc.setLineWidth(0.38);
+                    doc.setDrawColor(0, 0, 0);
+
+                    // First line (immediately after the word "Recommendation:")
+                    doc.line(33, afterTablesY + 1.0, 100, afterTablesY + 1.0);
+
+                    // Print "To Proceed To" immediately after first line
+                    doc.text("To Proceed To", 102, afterTablesY);
+
+                    // Second line with about 10 space width, starting after "To Proceed To"
+                    doc.line(130, afterTablesY + 1.0, 184, afterTablesY + 1.0);
+
+                    // Finally, print "Year of Study" at the right edge
+                    doc.text("Year of Study", 185, afterTablesY);
+
+
+                    // KEY TO GRADING SYSTEM — TITLE
+                    const keyTitle = "Key to Grading System";
+                    const titleX = doc.internal.pageSize.width / 2;
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(11);
+                    doc.text(keyTitle, titleX, doc.lastAutoTable.finalY + 30, { align: "center" });
+
+                    // Underline the title
+                    const textWidth = doc.getTextWidth(keyTitle);
+                    doc.setLineWidth(0.35);
+                    doc.setDrawColor(0, 0, 0);
+                    doc.line(
+                      titleX - textWidth / 2,
+                      doc.lastAutoTable.finalY + 31,
+                      titleX + textWidth / 2,
+                      doc.lastAutoTable.finalY + 31
+                    );
+
+                    // GRADING TABLE DATA
+                    const gradingTable = [
+                      ["A = 70–100%", "- Excellent", ""],
+                      ["B = 60–69%", "- Good", ""],
+                      ["C = 50–59%", "- Satisfactory", ""],
+                      ["D = 40–49%", "- Pass", ""],
+                      ["E = 39% and below", "- Fail", "1 unit consists of 45 lecture hours or equivalent"]
+                    ];
+
+                    // GRADING TABLE (NO BORDERS, LEFT-ALIGNED, SINGLE-LINE TEXT)
+                    doc.autoTable({
+                      startY: doc.lastAutoTable.finalY + 40,
+                      head: [],
+                      body: gradingTable,
+                      theme: "plain", // removes grid borders
+                      tableWidth: 'wrap', // only as wide as content
+                      styles: {
+                        font: "helvetica",
+                        fontSize: 11,
+                        cellPadding: 1,          // Reduced padding
+                        overflow: 'linebreak',   // Default overflow, will still obey cell width
+                        lineColor: [255, 255, 255], // Transparent lines
+                        textColor: [0, 0, 0],
+                        valign: "middle"
+                      },
+                      columnStyles: {
+                        0: { cellWidth: 40 },
+                        1: { cellWidth: 30 },
+                        2: { cellWidth: 115, overflow: 'visible' } // Large enough to fit full sentence
+                      },
+                      margin: { left: 1, right: 1 }
+                    });
+
+                    // Signature line setup
+                    const sigStartY = doc.lastAutoTable.finalY + 15;
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(11);
+
+                    // Signed label
+                    doc.text("Signed:", 1, sigStartY);
+                    doc.text("Signed:", 1.05, sigStartY);
+
+                    // Line after "Signed:"
+                    doc.setLineWidth(0.35);
+                    doc.setDrawColor(0, 0, 0);
+                    doc.line(20, sigStartY, 100, sigStartY); // from x=20 to x=100
+
+                    // "Date Issued:" label
+                    doc.text("Date Issued:", 105, sigStartY);
+                    doc.text("Date Issued:", 105.05, sigStartY);
+
+                    // Line after "Date Issued:"
+                    doc.line(130, sigStartY, 207, sigStartY); // from x=130 to x=207
+
+                    // Registrar title under signature
+                    doc.text("Registrar (Academic Affairs)", 40, sigStartY + 3.5);
+                    doc.text("Registrar (Academic Affairs)", 40.05, sigStartY + 3.5);
+
+
+
+
+                    // Save the PDF to the zip file
+                    const pdfBlob = doc.output("blob");
+                    zip.file(`${student["NAME"]}.pdf`, pdfBlob);
+
+                    // Update progress bar
+                    progressBar.style.width = `${((i + 1) / studentSheet.length) * 100}%`;
+                    progressText.textContent = `Processing ${i + 1}/${studentSheet.length} students`;
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                // Generate and Download ZIP
+                setTimeout(() => {
+                    zip.generateAsync({ type: "blob" }).then(function(content) {
+                        const zipFileName = document.getElementById("zipFileName").value.trim() || "Transcripts_Batch";
+                        const downloadLink = document.createElement("a");
+                        downloadLink.href = URL.createObjectURL(content);
+                        downloadLink.download = `${zipFileName}.zip`;
+                        downloadLink.click();
+
+                        document.getElementById("progressBar").style.width = "100%";
+                        document.getElementById("successMessage").style.display = "block";
+                        setTimeout(() => {
+                            document.getElementById("progressContainer").style.display = "none";
+                            document.getElementById("successMessage").style.display = "none";
+                            document.getElementById("circularProgressContainer").style.display = "none";
+                        }, 5000);
+                    });
+                }, 500);
+            };
+        });
+
+    </script>
+</body>
+</html>
