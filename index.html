@@ -612,22 +612,54 @@
 
                 // Generate and Download ZIP
                 setTimeout(() => {
-                    zip.generateAsync({ type: "blob" }).then(function(content) {
+                    zip.generateAsync({ type: "blob" }).then(function (content) {
                         const zipFileName = document.getElementById("zipFileName").value.trim() || "Transcripts_Batch";
+                        const blobURL = URL.createObjectURL(content);
+                
+                        // Attempt auto-download (works on most desktops)
                         const downloadLink = document.createElement("a");
-                        downloadLink.href = URL.createObjectURL(content);
+                        downloadLink.href = blobURL;
                         downloadLink.download = `${zipFileName}.zip`;
-                        downloadLink.click();
-
+                
+                        try {
+                            downloadLink.click();
+                        } catch (error) {
+                            console.warn("Auto-download failed, showing manual link.");
+                        }
+                
+                        // Always create manual fallback for mobile users
+                        const fallbackBtn = document.createElement("a");
+                        fallbackBtn.href = blobURL;
+                        fallbackBtn.download = `${zipFileName}.zip`;
+                        fallbackBtn.textContent = "Tap here to manually download ZIP";
+                        fallbackBtn.className = "btn";
+                        fallbackBtn.style.display = "inline-block";
+                        fallbackBtn.style.marginTop = "15px";
+                
+                        // Prevent multiple buttons
+                        const existing = document.getElementById("manualDownloadLink");
+                        if (!existing) {
+                            fallbackBtn.id = "manualDownloadLink";
+                            document.querySelector(".container-box").appendChild(fallbackBtn);
+                        }
+                
+                        // UI cleanup
                         document.getElementById("progressBar").style.width = "100%";
                         document.getElementById("successMessage").style.display = "block";
+                
                         setTimeout(() => {
                             document.getElementById("progressContainer").style.display = "none";
                             document.getElementById("successMessage").style.display = "none";
                             document.getElementById("circularProgressContainer").style.display = "none";
-                        }, 5000);
+                
+                            // Remove fallback link after a while (optional)
+                            if (fallbackBtn) {
+                                fallbackBtn.remove();
+                            }
+                        }, 10000);
                     });
                 }, 500);
+
             };
         });
 
