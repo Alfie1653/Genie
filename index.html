@@ -112,6 +112,46 @@
             font-size: 16px;
             color: #333;
         }
+        @media screen and (max-width: 500px) {
+            .container-box {
+                width: 90%;
+                padding: 20px;
+            }
+            .container-box input[type="text"],
+            #zipFileName {
+                width: 100%;
+                font-size: 16px;
+                box-sizing: border-box;
+            }
+            .btn {
+                width: 100%;
+                font-size: 16px;
+            }
+            #circularProgressContainer {
+                width: 70px;
+                height: 70px;
+                margin: 15px auto;
+            }
+            #progressPercent {
+                font-size: 14px;
+            }
+            #fileNameDisplay {
+                font-size: 14px;
+                word-wrap: break-word;
+            }
+            #disclaimer-box {
+                width: 95%;
+                font-size: 14px;
+                margin-top: 40px;
+                text-align: center;
+                position: relative;
+            }
+            #successMessage,
+            #errorMessage {
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+        }
     </style>
 </head>
 <body>
