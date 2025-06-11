@@ -75,7 +75,6 @@
           width: 80px;
           height: 80px;
         }
-
         #successMessage {
             display: none;
             font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -106,6 +105,24 @@
             border-radius: 4px;
             font-weight: bold;
             font-family: Arial, sans-serif;
+        }
+        #manualDownloadLink {
+            display: block;
+            margin: 15px auto 0 auto;
+            padding: 10px 24px;
+            background-color: #00796b;
+            color: white;
+            text-align: center;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-decoration: none;
+            width: fit-content;
+            max-width: 90%;
+        }
+        #manualDownloadLink:hover {
+            background-color: #004d40;
         }
         #fileNameDisplay {
             margin-top: 10px;
@@ -632,7 +649,7 @@
                         fallbackBtn.href = blobURL;
                         fallbackBtn.download = `${zipFileName}.zip`;
                         fallbackBtn.textContent = "Tap here to manually download ZIP";
-                        fallbackBtn.className = "btn";
+                        fallbackBtn.id = "manualDownloadLink";
                         fallbackBtn.style.display = "inline-block";
                         fallbackBtn.style.marginTop = "15px";
                 
